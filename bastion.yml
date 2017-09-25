@@ -1,0 +1,40 @@
+---
+- name: Base setup
+  hosts:
+    - bastion
+  user: root
+  connection: ssh
+  gather_facts: yes
+  roles:
+    - common
+    - base
+  tags:
+    - base
+
+- name: LDAP setup
+  hosts:
+    - proxy
+  user: root
+  connection: ssh
+  gather_facts: yes
+  vars_files:
+    - roles/common/vars/secret.yml
+  roles:
+    - common
+    - ldap
+  tags:
+    - ldap
+
+- name: Teleport setup
+  hosts:
+    - bastion
+  user: root
+  connection: ssh
+  gather_facts: yes
+  vars_files:
+    - roles/common/vars/secret.yml
+  roles:
+    - common
+    - teleport
+  tags:
+    - teleport

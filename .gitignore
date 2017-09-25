@@ -1,0 +1,2 @@
+roles/teleport/files/teleport-*\.tar\.gz
+roles/teleport/files/teleport/*

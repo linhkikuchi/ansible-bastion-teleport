@@ -1,0 +1,49 @@
+---
+- name: Install LDAP auth
+  yum: name={{item}} state=present
+  with_items:
+    - adcli
+    - krb5-workstation
+    - oddjob
+    - oddjob-mkhomedir
+    - openldap-clients
+    - policycoreutils-python
+    - python2-pip
+    - realmd
+    - samba-common
+    - samba-common-tools
+    - sssd
+
+- name: Install pexpect
+  pip:
+    name: pexpect
+    state: present
+
+- name: Setup LDAP
+  expect:
+    command: realm join --user=admin domain_name
+    responses:
+      Password for admin.nz: "{{ldap_password}}"
+  register: realm
+  # Due to YAML limitations, had to separate this check in 2 parts
+  failed_when: "'Couldn' in realm.stdout and 't join realm' in realm.stdout"
+
+- name: Config SSSD
+  copy:
+    dest: /etc/sssd/sssd.conf
+    src: sssd.conf
+    backup: yes
+  notify: restart-sssd
+
+- name: Config default bashrc for LDAP users
+  blockinfile:
+    dest: /etc/bashrc
+    state: present
+    backup: yes
+    insertafter: EOF
+    # insecure flag is there to allow the use of the cert on localhost
+    block: |
+      tssh() {
+          tsh --proxy={{inventory_hostname}}:{{teleport_web}} --insecure ssh $1
+      }
+      PS1="\[\e[0;35m\][\u@\h \W]\$ \[\e[m\]"

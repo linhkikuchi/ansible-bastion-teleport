@@ -1,0 +1,37 @@
+---
+- name: Create configuration folder
+  file:
+    path: /etc/teleport/
+    state: directory
+    mode: 0500
+
+- name: Create Admin and Gbrain roles
+  copy:
+    src: roles/{{item}}.yaml
+    dest: /etc/teleport/{{item}}.yaml
+    mode: 0400
+  with_items:
+    - "{{roles}}"
+
+# This is what lazyness looks like
+- name: Create Teleport Roles
+  template:
+    src: teleport-role.yaml.j2
+    dest: /etc/teleport/{{item[0]}}-{{item[1]}}.yaml
+    mode: 0400
+  with_nested:
+    - "{{logins}}"
+    - "{{environments}}"
+
+- name: Load Admin and Gbrain roles
+  command: tctl create -f /etc/teleport/{{item}}.yaml
+  notify: restart-teleport
+  with_items:
+    - "{{roles}}"
+
+- name: Load Teleport Roles
+  command: tctl create -f /etc/teleport/{{item[0]}}-{{item[1]}}.yaml
+  notify: restart-teleport
+  with_nested:
+    - "{{logins}}"
+    - "{{environments}}"

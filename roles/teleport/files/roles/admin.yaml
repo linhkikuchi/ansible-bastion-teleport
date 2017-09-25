@@ -1,0 +1,14 @@
+---
+kind: role
+version: v2
+metadata:
+  name: admin
+  namespace: default
+spec:
+  logins: [ root, admin ]
+  max_session_ttl: 90h0m0s
+  namespaces: ['*']
+  node_labels:
+    '*': '*'
+  resources:
+    '*': [read, write]

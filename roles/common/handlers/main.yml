@@ -1,0 +1,27 @@
+# Keep the handlers in alphabetical order within their categories.
+---
+### START/ENABLE ###
+# This script returns 2 if the service is already started and ansible thinks it is an error.
+- name: start-srvadmin
+  command: /opt/dell/srvadmin/sbin/srvadmin-services.sh start
+  register: srvadmin
+  failed_when: srvadmin.rc == 1
+
+- name: enable-srvadmin
+  command: /opt/dell/srvadmin/sbin/srvadmin-services.sh enable
+
+### RESTART/RELOAD ###
+- name: restart-iptables
+  service: name=iptables state=restarted enabled=yes
+
+- name: restart-ntpd
+  service: name=ntpd state=restarted enabled=yes
+
+- name: restart-sshd
+  service: name=sshd state=restarted
+
+- name: restart-sssd
+  service: name=sssd state=restarted
+
+- name: restart-teleport
+  service: name=teleport state=started enabled=yes

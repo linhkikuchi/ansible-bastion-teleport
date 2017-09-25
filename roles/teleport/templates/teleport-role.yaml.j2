@@ -1,0 +1,16 @@
+---
+kind: role
+version: v2
+metadata:
+  name: {{item.0}}-{{item.1}}
+  namespace: default
+spec:
+  logins: [ {{item.0}} ]
+  max_session_ttl: 90h0m0s
+  namespaces: ['*']
+  node_labels:
+    'environment': '{{item.1}}'
+  resources:
+    '*': [read, write]
+
+# {{ansible_managed}}

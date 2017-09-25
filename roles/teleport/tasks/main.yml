@@ -1,0 +1,96 @@
+---
+- name: Install Requisites
+  yum: name={{item}} state=present
+  with_items:
+    - git
+    - go
+    - zip
+
+# Do not download if the target already exists.
+# to update to a newer version, change the teleport_url and delete teleport-latest.tar.gz
+- name: Download Teleport
+  get_url:
+    url: "{{ teleport_url }}"
+    dest: roles/teleport/files/teleport-latest.tar.gz
+    force: no
+  run_once: true
+  connection: local
+  register: new_teleport
+
+# unarchive module does not have an overwritte/force option,
+# so we will delete the target folder when a new version is downloaded
+- name: Delete old Teleport version
+  file:
+    path: /root/teleport
+    state: absent
+  when: new_teleport.changed
+
+- name: Copy Teleport
+  unarchive:
+    src: teleport-latest.tar.gz
+    dest: /root/
+    creates: /root/teleport
+
+- name: Install Teleport
+  command: make install
+  args:
+    chdir: /root/teleport/
+  when: new_teleport.changed
+
+- name: Fix Permissions
+  file:
+    dest: /var/lib/teleport
+    mode: "go-rwx"
+    state: directory
+    recurse: yes
+
+- name: Install teleport service
+  copy:
+    src: teleport.service
+    dest: /etc/systemd/system/teleport.service
+    mode: 0644
+  register: new_service
+
+# This can't be a handler as it is required to be reloaded before starting the teleport service
+- name: Reload systemctl daemon
+  command: systemctl daemon-reload
+  when: new_service.changed
+
+- name: Configure Teleport Auth
+  template:
+    src: teleport-auth.yaml.j2
+    dest: /etc/teleport.yaml
+    mode: 0400
+  notify: restart-teleport
+  when: inventory_hostname in groups.auth
+
+- name: Configure Teleport Proxy
+  template:
+    src: teleport-proxy.yaml.j2
+    dest: /etc/teleport.yaml
+    mode: 0400
+  notify: restart-teleport
+  when: inventory_hostname in groups.proxy
+
+- name: roles.yml
+  include: roles.yml
+  when: inventory_hostname in groups.auth
+  tags: roles
+
+# This will start different roles depending on the configuration file
+- name: Start and Enable Teleport Server
+  service:
+    name: teleport
+    state: started
+    enabled: yes
+
+- name: Install log courer
+  yum: name=log-courier state=present
+  when: inventory_hostname in groups.auth
+
+- name: Configure log courier
+  copy:
+    src: 10-teleport.conf
+    dest: /etc/log-courier/conf.d/10-teleport.conf
+    mode: 0644
+  when: inventory_hostname in groups.auth

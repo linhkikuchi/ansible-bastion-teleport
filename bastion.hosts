@@ -1,0 +1,9 @@
+[bastion:children]
+auth
+proxy
+
+[auth]
+bastion-auth.com ansible_host= external_ip=
+
+[proxy]
+bastion-proxy.com ansible_host= external_ip=

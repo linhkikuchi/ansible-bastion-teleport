@@ -1,0 +1,37 @@
+# {{ansible_managed}}
+
+teleport:
+  nodename: {{inventory_hostname}}
+  data_dir: /var/lib/teleport
+  pid_file: /var/run/teleport.pid
+  auth_token: {{teleport_proxy_token}}
+  advertise_ip: {{external_ip}}
+  auth_servers:
+{# auth internal ip #}
+{% for host in groups.auth %}
+  - {{hostvars[host]['ansible_host']}}:3025
+{% endfor %}
+  connection_limits:
+    max_connections: 1000
+    max_users: 250
+  log:
+    output: syslog
+    severity: WARN
+
+auth_service:
+  enabled: "no"
+
+authentication:
+  type: local
+  second_factor: off
+
+ssh_service:
+  enabled: "no"
+
+proxy_service:
+  enabled: "yes"
+  listen_addr: 0.0.0.0:3023
+  tunnel_listen_addr: 0.0.0.0:3024
+  web_listen_addr: 0.0.0.0:{{teleport_web}}
+  https_key_file: /etc/pki/tls/private/test.key
+  https_cert_file: /etc/pki/tls/certs/test.crt

@@ -1,0 +1,17 @@
+---
+ldap_server: 
+ldap_basedn: 
+
+teleport_url: https://github.com/gravitational/teleport/releases/download/v2.2.3/teleport-v2.2.3-linux-amd64-bin.tar.gz
+
+# default ports are commented
+# teleport_ssh: 3022
+# teleport_proxy: 3023
+# teleport_tunnel: 3024
+# teleport_auth: 3025
+teleport_web: 443
+
+logins: [ root, admin ]
+environments: [ prod, stage, demo, dev ]
+
+roles: [ admin, admin-demo, admin-stage, admin-prod]

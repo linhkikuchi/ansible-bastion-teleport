@@ -1,0 +1,54 @@
+## IPTABLES
+
+*mangle
+COMMIT
+
+*nat
+COMMIT
+
+# DEFAULT ALL CHAINS TO ACCEPT ON FALLTHROUGH
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+
+:RPORTS - [0:0]
+[0:0] -A RPORTS -p tcp -m tcp --dport 22 -j ACCEPT
+
+# TelePORTS
+{% if inventory_hostname in groups.proxy %}
+[0:0] -A RPORTS -p tcp -m tcp --dport {{teleport_web}} -j ACCEPT
+[0:0] -A RPORTS -p tcp -m tcp --dport 3023 -j ACCEPT
+[0:0] -A RPORTS -p tcp -m tcp --dport 3024 -j ACCEPT
+{% endif %}
+{% if inventory_hostname in groups.auth %}
+[0:0] -A RPORTS -p tcp -m tcp --dport 3025 -j ACCEPT
+{% endif %}
+
+# Monitoring
+[0:0] -A RPORTS -p tcp -m tcp --dport 4949 -j ACCEPT
+[0:0] -A RPORTS -p tcp -m tcp --dport 5666 -j ACCEPT
+
+# Allow ping
+[0:0] -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
+
+# Allow localhost full access
+[0:0] -A INPUT -i lo -j ACCEPT
+
+# Block
+[0:0] -A INPUT -p tcp -m tcp --dport 22 -j DROP
+[0:0] -A INPUT -p udp -m udp --dport 22 -j DROP
+[0:0] -A INPUT -p tcp -m tcp --dport 111 -j DROP
+[0:0] -A INPUT -p udp -m udp --dport 111 -j DROP
+[0:0] -A INPUT -p tcp -m tcp --dport 3000 -j DROP
+[0:0] -A INPUT -p udp -m udp --dport 3000 -j DROP
+[0:0] -A INPUT -p tcp -m tcp --dport 3013 -j DROP
+[0:0] -A INPUT -p udp -m udp --dport 3013 -j DROP
+[0:0] -A INPUT -p tcp -m tcp --dport 9999 -j DROP
+[0:0] -A INPUT -p udp -m udp --dport 9999 -j DROP
+
+# Drop Everything else
+[0:0] -A INPUT -j DROP
+####################################################################
+
+COMMIT

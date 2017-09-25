@@ -1,0 +1,124 @@
+---
+- name: Install Basic Packages
+  yum: name={{item}} state=present
+  with_items:
+    - bind-utils
+    - curl
+    - iptables-services
+    - libselinux-python
+    - lshw
+    - lvm2
+    - rsync
+    - tuned
+    - tzdata
+    - wget
+    - xfsprogs
+    - net-tools
+  tags:
+    - packages
+    - tuned
+
+# This way we don't need to reboot the machine to have a persistent hostname change
+- name: Change the machines name
+  hostname: name={{inventory_hostname}}
+  tags:
+    - hostname
+
+- name: Make the hostname persistent
+  command: hostnamectl set-hostname {{inventory_hostname}}
+  tags:
+    - hostname
+
+# This way we don't need to reboot the machine to have a persistent disable on SELinux
+- name: Disable SELinux (Temporarily)
+  command: setenforce Permissive
+  ignore_errors: yes
+  tags:
+    - selinux
+
+- name: Disable SELinux (Permanently)
+  selinux: state=disabled
+  ignore_errors: yes
+  tags:
+    - selinux
+
+- name: Change logrotate to compress
+  lineinfile: dest=/etc/logrotate.conf regexp='^compress' insertafter="#compress" line='compress'
+  tags:
+    - logrotate
+
+# If epel is installed by default, then this action will fail
+- name: Install EPEL repository
+  yum: name=https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ansible_distribution_major_version}}.noarch.rpm state=present
+  ignore_errors: yes
+  tags:
+    - epel
+
+- name: Install EPEL Packages
+  yum: name={{item}} state=present enablerepo=epel
+  with_items:
+    - joe
+    - mtr
+    - nano
+    - nmap
+    - ntp
+    - openssh
+    - python-httplib2
+    - sysstat
+    - telnet
+    - vim-enhanced
+    - yum-utils
+  tags:
+    - epel
+
+- name: Erase Unwanted Packages
+  yum: name={{item}} state=absent
+  with_items:
+    - httpd
+    - inetu-*
+    - pm-utils
+  no_log: True
+  tags:
+    - packages
+
+# Password is salted and hashed
+- name: Change root password
+  user: name=root password=$6$Nm6H6zso$IWejLFs4uyn/VBIxXmDzK4OoGkzORib3Muy1kFaYclIras/KTQ0e2zN08GdXdzWmuNFth50n5sebcpTlCdOhE.
+  tags:
+    - password
+
+- name: Enable colours on nano
+  replace: dest=/etc/nanorc regexp='^# (include ".*.nanorc")$' replace='\1' backup=yes
+  tags:
+    - bashrc
+
+- name: Change PS1 on .bashrc
+  lineinfile: dest=~root/.bashrc line='PS1="\[\e[0;31m\][\u@\h \W]\$ \[\e[m\]"' state=present regexp="^PS1=.*$" backup=yes owner=root group=root mode=0644
+  tags:
+    - bashrc
+
+- name: Disable Services
+  service: name={{item}} enabled=no state=stopped
+  with_items:
+    - chronyd
+    - firewalld
+    - postfix
+  ignore_errors: yes
+  tags:
+    - services
+
+- name: Copy iptables
+  template:
+    src: iptables.j2
+    dest: /etc/sysconfig/iptables
+    backup: yes
+    force: yes
+  notify: restart-iptables
+  tags:
+    - iptables
+
+- name: Disable Root login
+  lineinfile: 'dest=/etc/ssh/sshd_config regexp="^[^\"]PermitRootLogin.*$" line="PermitRootLogin without-password" state=present backup=yes'
+  notify: restart-sshd
+  tags:
+    - sshd

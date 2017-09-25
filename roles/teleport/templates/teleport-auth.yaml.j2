@@ -1,0 +1,34 @@
+# {{ansible_managed}}
+
+teleport:
+  nodename: {{inventory_hostname}}
+  data_dir: /var/lib/teleport
+  pid_file: /var/run/teleport.pid
+  advertise_ip: {{external_ip}}
+  auth_servers:
+  - 0.0.0.0:3025
+  connection_limits:
+    max_connections: 1000
+    max_users: 250
+  log:
+    output: syslog
+    severity: WARN
+
+auth_service:
+  enabled: "yes"
+  listen_addr: 0.0.0.0:3025
+  tokens:
+  - node:{{teleport_node_token}}
+  - proxy:{{teleport_proxy_token}}
+  - trustedcluster:{{teleport_cluster_token}}
+  oidc_connectors: []
+
+authentication:
+  type: local
+  second_factor: off
+
+ssh_service:
+  enabled: "no"
+
+proxy_service:
+  enabled: "no"
